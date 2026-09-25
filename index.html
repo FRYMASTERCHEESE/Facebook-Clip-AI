@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0866ff">
+  <title>Facebook Clip AI</title>
+  <meta name="description" content="Create vertical Facebook Reels in your browser and publish them to a Facebook Page.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Facebook <span>Clip AI</span></div>
+    <div class="tag">Facebook-only • separate project</div>
+  </header>
+
+  <main>
+    <section class="hero card">
+      <div>
+        <p class="eyebrow">FACEBOOK REELS WORKFLOW</p>
+        <h1>Turn a video into a Facebook Reel.</h1>
+        <p>Upload a video, crop it to vertical 9:16, prepare Facebook copy, export the Reel, then publish it to a Facebook Page after connecting your Meta Page credentials.</p>
+      </div>
+      <div class="checks">
+        <span>✓ 9:16 vertical</span>
+        <span>✓ No app watermark</span>
+        <span>✓ Local browser processing</span>
+        <span>✓ Facebook Page publishing</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <section class="card">
+        <h2>1. Choose video</h2>
+        <label class="upload">
+          <input id="videoInput" type="file" accept="video/*">
+          <strong>Choose a video</strong>
+          <span>MP4, MOV or WebM</span>
+        </label>
+
+        <video id="preview" controls playsinline></video>
+
+        <div class="two">
+          <label>Start time (seconds)
+            <input id="startTime" type="number" min="0" step="0.1" value="0">
+          </label>
+          <label>End time (seconds)
+            <input id="endTime" type="number" min="0" step="0.1" value="30">
+          </label>
+        </div>
+
+        <label>Automatic Reel length
+          <select id="clipLength">
+            <option value="15">15 seconds</option>
+            <option value="30" selected>30 seconds</option>
+            <option value="45">45 seconds</option>
+            <option value="60">60 seconds</option>
+          </select>
+        </label>
+
+        <button id="autoPick" class="secondary" disabled>Auto-pick clip</button>
+        <button id="createReel" class="primary" disabled>Create 9:16 Facebook Reel</button>
+
+        <div class="progress"><div id="progressBar"></div></div>
+        <p id="status" class="notice">Choose a video to begin.</p>
+      </section>
+
+      <section class="card">
+        <h2>2. Facebook post text</h2>
+        <label>Topic / hook
+          <input id="topic" placeholder="e.g. Funny kitten moment">
+        </label>
+        <label>Caption
+          <textarea id="caption" rows="7" placeholder="Your Facebook Reel caption"></textarea>
+        </label>
+        <label>Hashtags
+          <textarea id="hashtags" rows="3" placeholder="#Reels #Animals"></textarea>
+        </label>
+
+        <button id="generateCopy" class="secondary">Generate Facebook copy</button>
+        <button id="copyPost" class="secondary">Copy caption + hashtags</button>
+
+        <div id="downloadBox" class="download hidden">
+          <strong>Reel ready</strong>
+          <a id="downloadLink" class="primary" download="facebook-reel.mp4">Download Reel</a>
+        </div>
+      </section>
+    </section>
+
+    <section class="card">
+      <h2>3. Connect your Facebook Page</h2>
+      <p class="muted">For safety, this project does not contain your Facebook token. The Page token is kept only in this browser session and is sent over HTTPS to your own Worker only when you publish.</p>
+
+      <div class="three">
+        <label>Worker URL
+          <input id="workerUrl" placeholder="https://your-worker.workers.dev">
+        </label>
+        <label>Facebook Page ID
+          <input id="pageId" placeholder="123456789012345">
+        </label>
+        <label>Page Access Token
+          <input id="pageToken" type="password" placeholder="Paste Page access token">
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="saveConnection" class="secondary">Save for this session</button>
+        <button id="testConnection" class="secondary">Test Page connection</button>
+        <button id="publishReel" class="primary" disabled>Publish Reel to Facebook Page</button>
+      </div>
+      <p id="facebookStatus" class="notice">Not connected yet.</p>
+    </section>
+
+    <section class="card">
+      <h2>Setup notes</h2>
+      <p>This tool is for publishing to a Facebook <strong>Page</strong>. Your Meta app must have the Page permissions required for publishing. Never commit a Page access token or Meta App Secret to GitHub.</p>
+      <p class="muted">The publishing backend is included in the <code>worker</code> folder. It does not permanently store the token.</p>
+    </section>
+  </main>
+
+  <footer>Facebook Clip AI • Separate standalone project • No connection to the existing YouTube Clip AI</footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
