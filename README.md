@@ -1,57 +1,59 @@
-# Facebook Clip AI
+# Facebook Clip AI — Free AI Director
 
-A completely separate Facebook-only Reel creator/publisher.
+This is a completely separate Facebook-only project. It does not modify or depend on your YouTube Video-clipper repository.
 
-This project does **not** depend on or modify the existing YouTube Clip AI project.
+## $0-by-design
 
-## What it does
+This build contains:
+- no Runway API
+- no OpenAI video API
+- no paid model key
+- no per-generation billing integration
 
-- Upload a local video.
-- Pick a section of the video.
-- Crop/export it as a 720×1280 9:16 MP4 Reel.
-- Generate simple Facebook caption/hashtag copy.
-- Download the finished Reel.
-- Optionally publish it to a Facebook Page through the included Cloudflare Worker.
+The app can be hosted on GitHub Pages, and the included Facebook upload Worker can be kept on a free Cloudflare Worker plan subject to that provider's free-tier limits.
 
-## Important Facebook setup
+## One-button workflow
 
-Facebook Page publishing requires a Meta app and a Page access token with the permissions Meta requires for Page publishing. Common Page permissions include:
+After the one-time Facebook/Meta setup:
 
+1. Choose one of the Facebook Pages you manage.
+2. Type a topic.
+3. Press **AI DIRECTOR: CREATE + UPLOAD REEL**.
+4. The app searches Wikimedia Commons for Public Domain/CC0 video.
+5. It downloads 2–4 matching sources.
+6. It creates a fresh 720×1280 vertical montage in your browser.
+7. It automatically applies crop, zoom variation and style/colour treatment.
+8. It can add an on-screen hook.
+9. It can generate a simple original ambient soundtrack mathematically in the browser instead of using copyrighted music.
+10. It generates the Facebook caption and hashtags.
+11. It uploads the finished Reel to your selected Facebook Page.
+
+## Own-video mode
+
+You can also choose a video you own/have permission to publish.
+
+Compatible portrait MP4 files use a fast no-recompression path when possible, which improves speed and preserves quality.
+
+## Copyright approach
+
+Automatic source discovery only accepts Wikimedia Commons files whose metadata indicates Public Domain or CC0.
+
+The app:
+- does not rip YouTube videos
+- does not rip Facebook videos
+- does not remove someone else's watermark
+- does not automatically add copyrighted commercial music
+- does not add an app watermark
+
+No software can honestly guarantee that every metadata record is legally correct in every jurisdiction, but this build deliberately avoids ordinary copyrighted search results.
+
+## Facebook permissions
+
+The Meta app requests:
 - `pages_show_list`
 - `pages_read_engagement`
 - `pages_manage_posts`
 
-Your Meta app may also require App Review / Advanced Access before other people can use those permissions.
+Meta may require App Review / Advanced Access depending on how broadly the app is used.
 
-Do not put a Meta App Secret or long-lived Page token directly in a public GitHub repository.
-
-## Frontend deployment
-
-You can place `index.html`, `styles.css`, and `app.js` in a brand-new GitHub repository and enable GitHub Pages.
-
-Do not copy these files into your existing Video-clipper repository if you want the projects to stay fully separate.
-
-## Worker deployment
-
-The `worker` folder is a tiny proxy for Facebook Graph API calls and uploads.
-
-1. Create a free Cloudflare account.
-2. Install Wrangler locally or use Cloudflare's web editor.
-3. Deploy the Worker.
-4. Copy its `https://...workers.dev` URL.
-5. Paste that URL into the Facebook Clip AI website.
-6. Add your Facebook Page ID and Page Access Token.
-
-The Worker does not contain your token and does not permanently store it.
-
-## Security
-
-The Page token is saved only to `sessionStorage`, so closing the browser tab/session clears it. It is sent over HTTPS to your Worker only when testing or publishing.
-
-For a multi-user public product, replace this temporary token flow with a full Meta OAuth backend/session system before launch.
-
-## Notes
-
-The frontend uses FFmpeg WebAssembly from a CDN, so the first run can take longer while the browser downloads the video engine. Processing speed depends on the phone/computer and source video size.
-
-Facebook API behavior and permission requirements can change. If Meta changes the Reels Publishing API, update the worker endpoints accordingly.
+Never commit a Meta App Secret to GitHub.
