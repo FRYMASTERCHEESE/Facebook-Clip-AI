@@ -1,21 +1,14 @@
-Facebook Clip AI v12 — Stick Man Creator
+Facebook Clip AI v13 quick fix
 
-Replace these files in the root of the Facebook-Clip-AI GitHub repository:
-- index.html
-- app.js
-- service-worker.js
+Upload ONLY service-worker.js to the root of:
+FRYMASTERCHEESE/Facebook-Clip-AI
 
-Then open:
-https://frymastercheese.github.io/Facebook-Clip-AI/?v=12
+Replace the existing service-worker.js.
 
-New:
-- Stick Man Creator source tab
-- 1080×1920 original animation
-- 8/12/15/20 second lengths
-- funny, dance, cartoon fight, run/chase, superhero, football actions
-- several backgrounds
-- on-screen dialogue/hook
-- cartoon sound effects (no static soundtrack)
-- exact preview before Facebook upload
-- automatic Stick Man SEO caption + hashtags
-- duplicate upload protection still applies
+Then:
+1. Open https://frymastercheese.github.io/Facebook-Clip-AI/?v=13
+2. Reload the page once more so the new service worker controls the page.
+3. You should see a new “Share preview / send to ChatGPT” button.
+4. A Stick Man idea containing “fall/falling ... roof” will now draw a roof and animate the character falling off it.
+
+The Share button opens your phone share sheet when supported. Choose ChatGPT if it appears. If file sharing is not supported, the video is saved so you can attach it in ChatGPT manually.
