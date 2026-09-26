@@ -1,16 +1,15 @@
-Facebook Clip AI v7 — 1080p Fast + Viral-Ready
+Facebook Clip AI v8 — Single Reel + Preview First
 
-Changes:
-- 1080x1920 Reel output
-- 24 fps fast mode with balanced H.264 compression
-- stronger limited audio
-- own-video audio boost
-- 1–10 batch uploads retained
-- duplicate upload protection retained
-- shorter mobile-safe hooks and varied captions
+Replace these files in the root of your Facebook-Clip-AI GitHub repo:
+- index.html
+- app.js
+- service-worker.js
 
-Upload all files to your Facebook-Clip-AI GitHub repo, replacing matching files.
+Keep your existing styles.css, privacy.html, terms.html, data-deletion.html and Cloudflare Worker.
+
 Then open:
-https://frymastercheese.github.io/Facebook-Clip-AI/?v=7
+https://frymastercheese.github.io/Facebook-Clip-AI/?v=8
 
-No software can guarantee a Reel will go viral or that Meta will finish publishing within exactly 30 seconds.
+Automatic fresh stock mode now uses Pixabay rather than Wikimedia. You need your own free Pixabay API key once in Step 1.
+This version does NOT create synthetic static audio. It preserves real source audio if the selected video contains it.
+It creates exactly one continuous Reel, shows the exact upload file in a preview, and only uploads when you press Upload THIS Reel.

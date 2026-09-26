@@ -4,9 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0866ff">
-  <title>Facebook Clip AI Automatic</title>
-  <meta name="description" content="Create and publish Facebook Page Reels automatically from your own video or Public Domain/CC0 footage.">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <title>Facebook Clip AI — Preview First</title>
+  <meta name="description" content="Find one fresh vertical video, preview it, then choose whether to upload it as a Facebook Reel.">
+  <link rel="stylesheet" href="styles.css?v=8">
+  <style>
+    .preview-stage{margin-top:18px;border:1px solid rgba(120,160,230,.3);border-radius:22px;padding:14px;background:rgba(4,12,28,.38)}
+    #reelPreview{display:none;width:100%;max-height:72vh;aspect-ratio:9/16;object-fit:contain;background:#000;border-radius:18px}
+    .preview-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .preview-actions button{flex:1 1 210px}
+    .source-credit{margin-top:10px;font-size:.92rem;line-height:1.45;word-break:break-word}
+    .source-credit a{color:#7eb3ff}
+    .warning{border-color:rgba(255,191,71,.35)!important}
+  </style>
 </head>
 <body>
 <header class="topbar">
@@ -17,27 +26,20 @@
 <main>
 <section class="hero card">
   <div>
-    <div class="eyebrow">FACEBOOK-ONLY • FULL AUTO</div>
-    <h1>Press one button. AI Director builds and uploads your Reel.</h1>
-    <p>Connect Facebook once, choose one of your Pages, then let the free AI Director find reusable footage, build a fresh vertical edit, write the post text and upload it.</p>
+    <div class="eyebrow">V8 • SINGLE REEL • PREVIEW FIRST</div>
+    <h1>One fresh Reel. Preview it before Facebook sees it.</h1>
+    <p>This version removes the 3-clip montage and fake static soundtrack. It uses one continuous vertical video, keeps real source audio when the source has audio, and never uploads until you press Upload.</p>
   </div>
   <div class="hero-checks">
-    <span>✓ 9:16 Facebook Reels</span>
-    <span>✓ No app watermark</span>
-    <span>✓ Auto caption + hashtags</span>
-    <span>✓ No paid AI API</span>
+    <span>✓ One continuous Reel</span>
+    <span>✓ Preview before upload</span>
+    <span>✓ Fresh/latest stock search</span>
+    <span>✓ Black-and-white rejection</span>
   </div>
 </section>
 
 <section class="card" id="connect">
-  <div class="sectionhead">
-    <div>
-      <div class="eyebrow">STEP 1</div>
-      <h2>Connect Facebook</h2>
-      <p class="muted">One-time setup. Your Meta App ID is public-safe; never paste a Meta App Secret into this site.</p>
-    </div>
-  </div>
-
+  <div class="sectionhead"><div><div class="eyebrow">STEP 1</div><h2>Connect Facebook + fresh video source</h2></div></div>
   <div class="three">
     <label>Meta App ID
       <input id="metaAppId" inputmode="numeric" placeholder="Your Meta App ID">
@@ -50,6 +52,11 @@
     </label>
   </div>
 
+  <label>Free Pixabay API key — only needed for automatic fresh stock videos
+    <input id="pixabayKey" autocomplete="off" placeholder="Paste your free Pixabay API key">
+  </label>
+  <div class="notice subtle">The key is saved only in this browser. Automatic mode searches Pixabay's latest video results and shows source credit in this app. <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener">Get / view your free Pixabay API key</a>.</div>
+
   <div class="actions">
     <button id="saveSetup" class="secondary">Save setup</button>
     <button id="connectFacebook" class="primary">Connect Facebook</button>
@@ -57,188 +64,79 @@
   </div>
 
   <label>Choose Facebook Page
-    <select id="pageSelect" disabled>
-      <option value="">Connect Facebook first</option>
-    </select>
+    <select id="pageSelect" disabled><option value="">Connect Facebook first</option></select>
   </label>
-
   <div id="connectionStatus" class="notice">Not connected yet.</div>
 </section>
 
 <section class="card">
-  <div class="sectionhead">
-    <div>
-      <div class="eyebrow">STEP 2</div>
-      <h2>Choose where the Reel comes from</h2>
-    </div>
-  </div>
-
+  <div class="sectionhead"><div><div class="eyebrow">STEP 2</div><h2>Choose ONE Reel source</h2></div></div>
   <div class="source-tabs">
-    <button id="sourceAutoTab" class="source-tab active" type="button">🤖 Free AI Director</button>
+    <button id="sourceAutoTab" class="source-tab active" type="button">✨ Fresh automatic video</button>
     <button id="sourceOwnTab" class="source-tab" type="button">📱 My own video</button>
   </div>
 
   <div id="autoSourcePanel" class="source-panel">
     <label>What should the Reel be about?
-      <input id="topic" placeholder="e.g. lions, cute kittens, New Zealand nature">
+      <input id="topic" placeholder="e.g. lions, puppies, New Zealand nature">
     </label>
-
-    <div class="three">
-      <label>Reel length
-        <select id="clipLength">
-          <option value="15">About 15 seconds</option>
-          <option value="24" selected>About 24 seconds</option>
-          <option value="30">About 30 seconds</option>
-          <option value="45">About 45 seconds</option>
-        </select>
-      </label>
-
-      <label>Director style
-        <select id="directorStyle">
-          <option value="cinematic" selected>Cinematic</option>
-          <option value="documentary">Documentary</option>
-          <option value="dramatic">Dramatic</option>
-          <option value="calm">Calm nature</option>
-          <option value="cute">Cute / wholesome</option>
-        </select>
-      </label>
-
-      <label>Montage variety
-        <select id="montageCount">
-          <option value="2">2 clips — faster</option>
-          <option value="3" selected>3 clips — recommended</option>
-          <option value="4">4 clips — more variety</option>
-        </select>
-      </label>
-    </div>
-
-    <label class="checkline">
-      <input id="burnCaption" type="checkbox" checked>
-      <span>Add an automatic on-screen hook</span>
-    </label>
-
-    <label class="checkline">
-      <input id="originalSoundtrack" type="checkbox" checked>
-      <span>Add a simple original ambient soundtrack generated inside the browser</span>
-    </label>
-
-    <div class="notice good">
-      <strong>$0 creator mode:</strong> no Runway, no paid AI key and no per-generation API. AI Director only uses Public Domain/CC0 video results plus browser-side editing.
-    </div>
-    <div id="sourceInfo" class="notice subtle">No source selected yet.</div>
+    <div class="notice good"><strong>Fresh mode:</strong> searches newest Pixabay uploads first, requires a vertical HD/1080p-style source, rejects old/archival/monochrome tags, then checks the actual video frame for colour before accepting it.</div>
+    <button id="findFreshVideo" class="secondary" type="button">Find a fresh colour video</button>
+    <div id="sourceInfo" class="notice subtle">No video selected yet.</div>
   </div>
 
   <div id="ownSourcePanel" class="source-panel hidden">
     <label class="uploadbox">
-      <input id="ownVideo" type="file" accept="video/*">
-      <strong>Choose your own video</strong>
-      <span>Use a video you own or have permission to publish.</span>
+      <input id="ownVideo" type="file" accept="video/mp4,.mp4,.m4v">
+      <strong>Choose one MP4 video</strong>
+      <span>For the fastest upload, use a vertical 1080×1920 MP4 that already contains the audio/talking you want.</span>
     </label>
-    <video id="preview" controls playsinline></video>
   </div>
 </section>
 
 <section class="card">
-  <div class="sectionhead">
-    <div>
-      <div class="eyebrow">STEP 3</div>
-      <h2>FULL AUTO</h2>
-      <p class="muted">This handles reusable-source search → multi-clip montage → 9:16 styling → Facebook copy → Page upload.</p>
-    </div>
-  </div>
-
+  <div class="sectionhead"><div><div class="eyebrow">STEP 3</div><h2>Create preview — do NOT upload yet</h2></div></div>
   <label class="checkline">
     <input id="rightsConfirm" type="checkbox">
-    <span>I confirm that my own uploaded video is mine/authorized, or I am using the automatic Public Domain/CC0 source mode.</span>
+    <span>I confirm my own video is mine/authorized, or I am using the licensed Pixabay video selected by this app.</span>
   </label>
-
-  <div class="three">
-    <label>How many Reels to upload
-      <select id="uploadCount">
-        <option value="1" selected>1 Reel</option>
-        <option value="2">2 Reels</option>
-        <option value="3">3 Reels</option>
-        <option value="4">4 Reels</option>
-        <option value="5">5 Reels</option>
-        <option value="6">6 Reels</option>
-        <option value="7">7 Reels</option>
-        <option value="8">8 Reels</option>
-        <option value="9">9 Reels</option>
-        <option value="10">10 Reels</option>
-      </select>
-    </label>
-  </div>
-
-  <label class="checkline">
-    <input id="fastUploadMode" type="checkbox" checked>
-    <span>Fast 1080p Facebook upload mode — 1080×1920 MP4 tuned for good quality and smaller files.</span>
-  </label>
-
-  <div class="notice good"><strong>1080p + viral-ready:</strong> 1080×1920 vertical video, strong audio, short hook text, varied captions and duplicate protection. This is optimized for fast Facebook delivery, but no app can guarantee a 30-second publish time or that a Reel will go viral.</div>
-
-  <button id="fullAutoButton" class="primary bigbutton">🤖 AI DIRECTOR: CREATE + UPLOAD REEL(S)</button>
-
+  <div class="notice warning"><strong>Sound:</strong> this version does not generate the synthetic static soundtrack. It preserves the real audio in the selected clip. Some stock clips are naturally silent, so listen to the preview before uploading. If you want guaranteed AI talking voiceover, that needs a separate TTS service.</div>
+  <button id="createPreview" class="primary bigbutton" type="button">▶ CREATE PREVIEW</button>
   <div class="progress"><div id="progressBar"></div></div>
   <div id="autoStatus" class="notice">Ready.</div>
 
-  <div id="resultCard" class="result hidden">
-    <div>
-      <strong>Finished Reel</strong>
-      <p id="resultText">Your Reel is ready.</p>
-    </div>
-    <a id="downloadLink" class="secondary" download="facebook-reel.mp4">Download copy</a>
-  </div>
-</section>
-
-<section class="card">
-  <div class="sectionhead">
-    <div>
-      <div class="eyebrow">AUTOMATIC FACEBOOK COPY</div>
-      <h2>Caption + hashtags</h2>
+  <div id="previewStage" class="preview-stage hidden">
+    <video id="reelPreview" controls playsinline preload="metadata"></video>
+    <div id="previewInfo" class="notice subtle">Preview ready.</div>
+    <div class="preview-actions">
+      <button id="findAnother" class="secondary hidden" type="button">↻ Find another fresh video</button>
+      <button id="uploadReel" class="primary" type="button" disabled>⬆ Upload THIS Reel to Facebook</button>
     </div>
   </div>
-  <label>Caption
-    <textarea id="caption" rows="6" placeholder="Generated automatically"></textarea>
-  </label>
-  <label>Hashtags
-    <textarea id="hashtags" rows="3" placeholder="#FacebookReels #Reels"></textarea>
-  </label>
-  <button id="regenerateCopy" class="secondary">Regenerate copy</button>
 </section>
 
 <section class="card">
-  <div class="eyebrow">FREE AI DIRECTOR</div>
-  <h2>Still designed to look polished.</h2>
-  <div class="featuregrid">
-    <div><strong>Multi-source montage</strong><span>Automatically combines 2–4 reusable clips instead of simply reposting one source.</span></div>
-    <div><strong>Cinematic treatment</strong><span>Uses vertical crop, subtle zoom variation, contrast and saturation treatment.</span></div>
-    <div><strong>Automatic hook</strong><span>Creates an on-screen title plus Facebook caption and hashtags from your topic.</span></div>
-    <div><strong>Original soundtrack</strong><span>Can generate a simple ambient audio bed mathematically in your browser instead of using copyrighted music.</span></div>
-    <div><strong>Fast own-video path</strong><span>Compatible vertical MP4 files can be copied without recompression for speed and quality.</span></div>
-    <div><strong>No app watermark</strong><span>The editor does not stamp its own logo or watermark onto the Reel.</span></div>
-  </div>
+  <div class="sectionhead"><div><div class="eyebrow">FACEBOOK COPY</div><h2>Caption + hashtags</h2></div></div>
+  <label>Caption<textarea id="caption" rows="6" placeholder="Generated automatically"></textarea></label>
+  <label>Hashtags<textarea id="hashtags" rows="3" placeholder="#FacebookReels #Reels"></textarea></label>
+  <button id="regenerateCopy" class="secondary" type="button">Regenerate copy</button>
 </section>
 
 <section class="card">
-  <h2>Safety built in</h2>
-  <p class="muted">Automatic source discovery only accepts Wikimedia Commons files whose metadata indicates Public Domain or CC0. The app does not remove someone else’s watermark and does not rip Facebook or YouTube videos. Metadata can still be imperfect, so no software can honestly guarantee every possible copyright claim.</p>
-  <p class="muted">For a public multi-user app, Meta may require App Review/Advanced Access for Page permissions. This build is designed for Pages you manage.</p>
+  <h2>Why this should be much faster</h2>
+  <p class="muted">Automatic mode no longer builds three clips, renders overlays, makes artificial audio, concatenates files, or re-encodes 1080p in your phone browser. The exact MP4 you preview is the exact MP4 sent to Facebook. Upload time still depends on the file size, your mobile/Wi-Fi speed, and Facebook processing.</p>
 </section>
 </main>
 
 <footer>
-  Facebook Clip AI Automatic • Separate Facebook-only project •
-  <a href="privacy.html">Privacy</a> •
-  <a href="terms.html">Terms</a> •
-  <a href="data-deletion.html">Data deletion</a>
+  Facebook Clip AI • Preview-first single Reel mode •
+  <a href="privacy.html">Privacy</a> • <a href="terms.html">Terms</a> • <a href="data-deletion.html">Data deletion</a>
 </footer>
 
-<script type="module" src="app.js?v=7"></script>
+<script type="module" src="app.js?v=8"></script>
 <script>
-if ("serviceWorker" in navigator) {
-  addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=7", { updateViaCache: "none" }).catch(()=>{});
-  });
+if('serviceWorker' in navigator){
+  addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js?v=8',{updateViaCache:'none'}).catch(()=>{}));
 }
 </script>
 </body>
