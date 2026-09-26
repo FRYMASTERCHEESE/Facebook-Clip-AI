@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0866ff">
   <title>Facebook Clip AI — Preview First</title>
   <meta name="description" content="Find one fresh vertical video, preview it, then choose whether to upload it as a Facebook Reel.">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=12">
   <style>
     .preview-stage{margin-top:18px;border:1px solid rgba(120,160,230,.3);border-radius:22px;padding:14px;background:rgba(4,12,28,.38)}
     #reelPreview{display:none;width:100%;max-height:72vh;aspect-ratio:9/16;object-fit:contain;background:#000;border-radius:18px}
@@ -20,26 +20,27 @@
 <body>
 <header class="topbar">
   <div class="brand">Facebook <span>Clip AI</span></div>
-  <div class="topstatus" id="topStatus">● Facebook not connected</div>
+  <div class="topstatus" id="topStatus">● Facebook not connected • v12</div>
 </header>
 
 <main>
 <section class="hero card">
   <div>
-    <div class="eyebrow">V9 • SINGLE REEL • AUTO SEO • PREVIEW FIRST</div>
+    <div class="eyebrow">V12 • MULTI-SOURCE • STICK MAN CREATOR • PREVIEW FIRST</div>
     <h1>One fresh Reel. Preview it before Facebook sees it.</h1>
-    <p>This version removes the 3-clip montage and fake static soundtrack. It uses one continuous vertical video, keeps real source audio when the source has audio, and never uploads until you press Upload.</p>
+    <p>This version searches multiple permitted video sources instead of relying on one stock library. It still uses one continuous vertical video, keeps real source audio when available, and never uploads until you approve the preview.</p>
   </div>
   <div class="hero-checks">
     <span>✓ One continuous Reel</span>
     <span>✓ Preview before upload</span>
-    <span>✓ Fresh/latest stock search</span>
+    <span>✓ Multiple fresh video sources</span>
+    <span>✓ Create original Stick Man videos</span>
     <span>✓ Black-and-white rejection</span>
   </div>
 </section>
 
 <section class="card" id="connect">
-  <div class="sectionhead"><div><div class="eyebrow">STEP 1</div><h2>Connect Facebook + fresh video source</h2></div></div>
+  <div class="sectionhead"><div><div class="eyebrow">STEP 1</div><h2>Connect Facebook + video sources</h2></div></div>
   <div class="three">
     <label>Meta App ID
       <input id="metaAppId" inputmode="numeric" placeholder="Your Meta App ID">
@@ -52,10 +53,18 @@
     </label>
   </div>
 
-  <label>Free Pixabay API key — only needed for automatic fresh stock videos
-    <input id="pixabayKey" autocomplete="off" placeholder="Paste your free Pixabay API key">
-  </label>
-  <div class="notice subtle">The key is saved only in this browser. Automatic mode searches Pixabay's latest video results and shows source credit in this app. <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener">Get / view your free Pixabay API key</a>.</div>
+  <div class="three">
+    <label>Pixabay API key
+      <input id="pixabayKey" autocomplete="off" placeholder="Optional if already added">
+    </label>
+    <label>Pexels API key
+      <input id="pexelsKey" autocomplete="off" placeholder="Optional — adds Pexels videos">
+    </label>
+    <label>DVIDS API key
+      <input id="dvidsKey" autocomplete="off" placeholder="Optional — fresh U.S. military videos">
+    </label>
+  </div>
+  <div class="notice subtle"><strong>Automatic multi-source mode:</strong> can search Pixabay + Pexels, official NASA media, and DVIDS U.S. Department of Defense public media. Keys are saved only in this browser. DVIDS is especially useful for fresh U.S. military topics.</div>
 
   <div class="actions">
     <button id="saveSetup" class="secondary">Save setup</button>
@@ -72,7 +81,8 @@
 <section class="card">
   <div class="sectionhead"><div><div class="eyebrow">STEP 2</div><h2>Choose ONE Reel source</h2></div></div>
   <div class="source-tabs">
-    <button id="sourceAutoTab" class="source-tab active" type="button">✨ Fresh automatic video</button>
+    <button id="sourceAutoTab" class="source-tab active" type="button">✨ Fresh multi-source video</button>
+    <button id="sourceStickTab" class="source-tab" type="button">✏️ Stick Man creator</button>
     <button id="sourceOwnTab" class="source-tab" type="button">📱 My own video</button>
   </div>
 
@@ -80,9 +90,55 @@
     <label>What should the Reel be about?
       <input id="topic" placeholder="e.g. lions, puppies, New Zealand nature">
     </label>
-    <div class="notice good"><strong>Fresh mode:</strong> searches newest Pixabay uploads first, requires a vertical HD/1080p-style source, rejects old/archival/monochrome tags, then checks the actual video frame for colour before accepting it.</div>
-    <button id="findFreshVideo" class="secondary" type="button">Find a fresh colour video</button>
+    <div class="notice good"><strong>Multi-source mode:</strong> searches the most relevant permitted sources for your topic. For U.S. military searches it prioritizes fresh DVIDS footage when a DVIDS key is available. It rejects obvious old/monochrome results and checks colour before accepting a clip.</div>
+    <button id="findFreshVideo" class="secondary" type="button">Search all available sources</button>
     <div id="sourceInfo" class="notice subtle">No video selected yet.</div>
+    <label style="margin-top:14px">Authorized direct MP4 URL
+      <input id="directVideoUrl" inputmode="url" placeholder="https://example.com/video.mp4">
+    </label>
+    <button id="loadDirectVideo" class="secondary" type="button">Use authorized MP4 URL</button>
+    <div class="notice subtle">Use the direct-URL option only for a video you own, have permission to reuse, or that is clearly licensed for reuse. Sites may block direct downloads with CORS.</div>
+  </div>
+
+  <div id="stickSourcePanel" class="source-panel hidden">
+    <label>What should the Stick Man video be about?
+      <input id="stickTopic" placeholder="e.g. funny stick man at work, superhero stick man, stick man football">
+    </label>
+    <div class="three">
+      <label>Length
+        <select id="stickDuration">
+          <option value="8">8 seconds</option>
+          <option value="12" selected>12 seconds</option>
+          <option value="15">15 seconds</option>
+          <option value="20">20 seconds</option>
+        </select>
+      </label>
+      <label>Action
+        <select id="stickAction">
+          <option value="funny" selected>Funny story</option>
+          <option value="dance">Dance</option>
+          <option value="fight">Cartoon fight</option>
+          <option value="run">Run / chase</option>
+          <option value="hero">Superhero</option>
+          <option value="football">Football</option>
+        </select>
+      </label>
+      <label>Background
+        <select id="stickBackground">
+          <option value="blue" selected>Blue studio</option>
+          <option value="sunset">Sunset</option>
+          <option value="city">City</option>
+          <option value="park">Park</option>
+          <option value="dark">Dark neon</option>
+        </select>
+      </label>
+    </div>
+    <label>On-screen dialogue / hook
+      <input id="stickText" maxlength="90" placeholder="Auto-filled from your topic, or type your own short line">
+    </label>
+    <button id="generateStickVideo" class="primary" type="button">🎬 CREATE STICK MAN VIDEO</button>
+    <div class="notice good"><strong>Original content:</strong> the Stick Man animation is generated in your browser at 1080×1920 with moving characters, on-screen dialogue and cartoon sound effects. Preview it before Facebook upload.</div>
+    <div id="stickInfo" class="notice subtle">No Stick Man video created yet.</div>
   </div>
 
   <div id="ownSourcePanel" class="source-panel hidden">
@@ -98,9 +154,9 @@
   <div class="sectionhead"><div><div class="eyebrow">STEP 3</div><h2>Create preview — do NOT upload yet</h2></div></div>
   <label class="checkline">
     <input id="rightsConfirm" type="checkbox">
-    <span>I confirm my own video is mine/authorized, or I am using the licensed Pixabay video selected by this app.</span>
+    <span>I confirm my own/direct video is mine or authorized, I am using media from a permitted source, or I am uploading a Stick Man video generated by this app.</span>
   </label>
-  <div class="notice warning"><strong>Sound:</strong> this version does not generate the synthetic static soundtrack. It preserves the real audio in the selected clip. Some stock clips are naturally silent, so listen to the preview before uploading. If you want guaranteed AI talking voiceover, that needs a separate TTS service.</div>
+  <div class="notice warning"><strong>Sound:</strong> this version does not generate the synthetic static soundtrack. It preserves the real audio in the selected clip. Some source clips are naturally silent, so listen to the preview before uploading. If you want guaranteed AI talking voiceover, that needs a separate TTS service.</div>
   <button id="createPreview" class="primary bigbutton" type="button">▶ CREATE PREVIEW</button>
   <div class="progress"><div id="progressBar"></div></div>
   <div id="autoStatus" class="notice">Ready.</div>
@@ -133,10 +189,10 @@
   <a href="privacy.html">Privacy</a> • <a href="terms.html">Terms</a> • <a href="data-deletion.html">Data deletion</a>
 </footer>
 
-<script type="module" src="app.js?v=9"></script>
+<script type="module" src="app.js?v=12"></script>
 <script>
 if('serviceWorker' in navigator){
-  addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js?v=9',{updateViaCache:'none'}).catch(()=>{}));
+  addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js?v=12',{updateViaCache:'none'}).catch(()=>{}));
 }
 </script>
 </body>
