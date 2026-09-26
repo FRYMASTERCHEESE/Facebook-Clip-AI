@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0866ff">
   <title>Facebook Clip AI Automatic</title>
   <meta name="description" content="Create and publish Facebook Page Reels automatically from your own video or Public Domain/CC0 footage.">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 <header class="topbar">
@@ -152,7 +152,31 @@
     <span>I confirm that my own uploaded video is mine/authorized, or I am using the automatic Public Domain/CC0 source mode.</span>
   </label>
 
-  <button id="fullAutoButton" class="primary bigbutton">🤖 AI DIRECTOR: CREATE + UPLOAD REEL</button>
+  <div class="three">
+    <label>How many Reels to upload
+      <select id="uploadCount">
+        <option value="1" selected>1 Reel</option>
+        <option value="2">2 Reels</option>
+        <option value="3">3 Reels</option>
+        <option value="4">4 Reels</option>
+        <option value="5">5 Reels</option>
+        <option value="6">6 Reels</option>
+        <option value="7">7 Reels</option>
+        <option value="8">8 Reels</option>
+        <option value="9">9 Reels</option>
+        <option value="10">10 Reels</option>
+      </select>
+    </label>
+  </div>
+
+  <label class="checkline">
+    <input id="fastUploadMode" type="checkbox" checked>
+    <span>Fast 1080p Facebook upload mode — 1080×1920 MP4 tuned for good quality and smaller files.</span>
+  </label>
+
+  <div class="notice good"><strong>1080p + viral-ready:</strong> 1080×1920 vertical video, strong audio, short hook text, varied captions and duplicate protection. This is optimized for fast Facebook delivery, but no app can guarantee a 30-second publish time or that a Reel will go viral.</div>
+
+  <button id="fullAutoButton" class="primary bigbutton">🤖 AI DIRECTOR: CREATE + UPLOAD REEL(S)</button>
 
   <div class="progress"><div id="progressBar"></div></div>
   <div id="autoStatus" class="notice">Ready.</div>
@@ -209,11 +233,11 @@
   <a href="data-deletion.html">Data deletion</a>
 </footer>
 
-<script type="module" src="app.js?v=4"></script>
+<script type="module" src="app.js?v=7"></script>
 <script>
 if ("serviceWorker" in navigator) {
   addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=4", { updateViaCache: "none" }).catch(()=>{});
+    navigator.serviceWorker.register("./service-worker.js?v=7", { updateViaCache: "none" }).catch(()=>{});
   });
 }
 </script>

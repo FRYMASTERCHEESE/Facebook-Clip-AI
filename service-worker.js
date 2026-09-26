@@ -1,7 +1,8 @@
-const CACHE='facebook-clip-ai-free-director-v4';
+
+const CACHE='facebook-clip-ai-free-director-v7';
 const FILES=[
-  './styles.css?v=4',
-  './app.js?v=4',
+  './index.html?v=6',
+  './app.js?v=7',
   './ffmpeg-worker.js',
   './privacy.html',
   './terms.html',

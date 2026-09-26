@@ -6,7 +6,7 @@ const els = Object.fromEntries([
   'metaAppId','graphVersion','workerUrl','saveSetup','connectFacebook','disconnectFacebook',
   'pageSelect','connectionStatus','topStatus','sourceAutoTab','sourceOwnTab','autoSourcePanel',
   'ownSourcePanel','topic','clipLength','directorStyle','montageCount','burnCaption','originalSoundtrack','sourceInfo','ownVideo','preview','rightsConfirm',
-  'fullAutoButton','progressBar','autoStatus','resultCard','resultText','downloadLink',
+  'uploadCount','fastUploadMode','fullAutoButton','progressBar','autoStatus','resultCard','resultText','downloadLink',
   'caption','hashtags','regenerateCopy'
 ].map(id => [id,$(id)]));
 
@@ -22,6 +22,7 @@ let sourceMode = 'auto';
 let sourceMeta = null;
 let reelBlob = null;
 let reelUrl = null;
+let batchRunning = false;
 
 function setProgress(pct, text) {
   els.progressBar.style.width = `${Math.max(0,Math.min(100,pct))}%`;
@@ -33,17 +34,19 @@ function safeWords(text='') {
 function titleCase(text='') {
   return String(text).replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim().split(' ').map(x=>x?x[0].toUpperCase()+x.slice(1):x).join(' ');
 }
-function generateCopy() {
+function generateCopy(batchIndex=0,batchTotal=1) {
   const raw = els.topic.value.trim() || sourceMeta?.title || ownFile?.name?.replace(/\.[^.]+$/,'') || 'Amazing moment';
   const t = titleCase(raw).slice(0,90);
   const style=els.directorStyle?.value||'cinematic';
-  const opener={
-    cinematic:'This moment looks incredible 👀',
-    documentary:'A closer look at nature 🌿',
-    dramatic:'Wait until you see this 👀',
-    calm:'A peaceful moment from nature 🌿',
-    cute:'This is too cute ❤️'
-  }[style] || 'Watch this 👀';
+  const openers={
+    cinematic:['Wait for the best part 👀','This gets better as it goes 🔥','Watch closely — you might miss it 👀','Would you have expected this? 👀'],
+    documentary:['Look closely at what happens here 🌿','A detail most people miss 👀','This is worth a closer look 🌿','Did you know this happens? 👀'],
+    dramatic:['Wait until you see this 👀','This gets intense fast 🔥','You will want to watch this one 👀','What a moment 😮'],
+    calm:['A peaceful moment worth watching 🌿','Take a moment and enjoy this 🌿','A calm scene for your feed ✨','This is strangely relaxing 🌿'],
+    cute:['Try not to smile at this ❤️','The ending made this even better 🥹','This little moment made our day ❤️','Would this make you smile too? ❤️']
+  };
+  const pool=openers[style]||openers.cinematic;
+  const opener=pool[Math.abs(Number(batchIndex)||0)%pool.length];
   const sourceCredit = sourceMeta?.credit ? `\n\nSource notes:\n${sourceMeta.credit}` : '';
   els.caption.value = `${opener}\n\n${t}\n\nWhat do you think?${sourceCredit}`;
   const words=safeWords(raw).filter(w=>w.length>3).slice(0,4);
@@ -175,15 +178,16 @@ els.ownVideo.addEventListener('change',()=>{
   generateCopy();
 });
 
-async function findPublicDomainVideos(topic,wanted=3) {
+async function findPublicDomainVideos(topic,wanted=3,excludeUrls=new Set(),offset=0) {
   const q = new URLSearchParams({
     action:'query',
     format:'json',
     origin:'*',
     generator:'search',
-    gsrsearch:`${topic} filetype:video`,
+    gsrsearch:`${/\b(black and white|historic|history|archive|vintage|ww1|ww2|war)\b/i.test(topic) ? topic : topic + ' color'} filetype:video`,
     gsrnamespace:'6',
     gsrlimit:'40',
+    gsroffset:String(Math.max(0,Number(offset)||0)),
     prop:'imageinfo',
     iiprop:'url|mime|size|extmetadata'
   });
@@ -196,7 +200,7 @@ async function findPublicDomainVideos(topic,wanted=3) {
   for (const item of items) {
     const ii=item.imageinfo?.[0];
     if (!ii?.url || !String(ii.mime||'').startsWith('video/')) continue;
-    if (seen.has(ii.url)) continue;
+    if (seen.has(ii.url) || excludeUrls.has(ii.url)) continue;
     const meta=ii.extmetadata||{};
     const license=[
       meta.LicenseShortName?.value,
@@ -230,7 +234,7 @@ async function downloadSource(src,index=0) {
   return new File([blob],`source-${index}.${ext}`,{type:src.mime||blob.type||'video/mp4'});
 }
 
-function directorHook(){
+function directorHook(batchIndex=0,batchTotal=1){
   const raw=(els.topic.value||'Amazing Moment').trim();
   const style=els.directorStyle?.value||'cinematic';
   const prefix={
@@ -240,82 +244,107 @@ function directorHook(){
     calm:'PEACEFUL MOMENT',
     cute:'TOO CUTE'
   }[style]||'WATCH THIS';
-  return `${prefix}: ${raw}`.slice(0,54);
+  const suffix=batchTotal>1?` • ${batchIndex+1}/${batchTotal}`:'';
+  return `${prefix}: ${raw}${suffix}`.slice(0,46);
 }
 
+
 function styleFilter(style='cinematic'){
-  if(style==='documentary') return 'eq=contrast=1.04:saturation=1.03:brightness=0.01';
-  if(style==='dramatic') return 'eq=contrast=1.12:saturation=1.10:brightness=-0.02';
-  if(style==='calm') return 'eq=contrast=0.98:saturation=0.94:brightness=0.03';
-  if(style==='cute') return 'eq=contrast=1.02:saturation=1.12:brightness=0.03';
-  return 'eq=contrast=1.08:saturation=1.06:brightness=0.01';
+  if(style==='documentary') return 'eq=contrast=1.06:saturation=1.10:brightness=0.02';
+  if(style==='dramatic') return 'eq=contrast=1.12:saturation=1.18:brightness=-0.01';
+  if(style==='calm') return 'eq=contrast=1.00:saturation=1.02:brightness=0.04';
+  if(style==='cute') return 'eq=contrast=1.03:saturation=1.18:brightness=0.04';
+  return 'eq=contrast=1.08:saturation=1.14:brightness=0.02';
 }
+
 
 async function makeTitlePng(text){
   const canvas=document.createElement('canvas');
-  canvas.width=720; canvas.height=1280;
+  canvas.width=1080; canvas.height=1920;
   const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,720,1280);
-  ctx.font='900 48px Arial, sans-serif';
+  ctx.clearRect(0,0,1080,1920);
+  ctx.font='900 54px Arial, sans-serif';
   ctx.textAlign='center';
   ctx.textBaseline='middle';
   const words=String(text||'').split(/\s+/).filter(Boolean);
   const lines=[]; let line='';
   for(const word of words){
     const test=line?`${line} ${word}`:word;
-    if(ctx.measureText(test).width<600) line=test;
-    else{if(line) lines.push(line); line=word;}
+    if(ctx.measureText(test).width<850) line=test;
+    else { if(line) lines.push(line); line=word; }
     if(lines.length>=2) break;
   }
   if(line && lines.length<3) lines.push(line);
-  const boxH=lines.length*64+44, y=1010;
-  ctx.fillStyle='rgba(0,0,0,.64)';
-  ctx.fillRect(38,y-boxH/2,644,boxH);
+  const lineH=70;
+  const boxH=lines.length*lineH+34;
+  const y=1640;
+  ctx.fillStyle='rgba(0,0,0,.58)';
+  roundRect(ctx,70,y-boxH/2,940,boxH,30);
+  ctx.fill();
   ctx.fillStyle='#fff';
   ctx.shadowColor='rgba(0,0,0,.85)';
-  ctx.shadowBlur=12;
-  lines.forEach((ln,i)=>ctx.fillText(ln,360,y-(lines.length-1)*32+i*64));
+  ctx.shadowBlur=10;
+  lines.forEach((ln,i)=>ctx.fillText(ln,540,y-(lines.length-1)*lineH/2+i*lineH));
   return await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
 }
 
 function writeAscii(view,offset,text){
   for(let i=0;i<text.length;i++) view.setUint8(offset+i,text.charCodeAt(i));
 }
-function createOriginalWav(seconds,style='cinematic'){
-  const sampleRate=22050;
-  const count=Math.max(1,Math.floor(seconds*sampleRate));
-  const buf=new ArrayBuffer(44+count*2);
-  const view=new DataView(buf);
-  writeAscii(view,0,'RIFF'); view.setUint32(4,36+count*2,true);
-  writeAscii(view,8,'WAVE'); writeAscii(view,12,'fmt ');
-  view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
-  view.setUint32(24,sampleRate,true); view.setUint32(28,sampleRate*2,true);
-  view.setUint16(32,2,true); view.setUint16(34,16,true);
-  writeAscii(view,36,'data'); view.setUint32(40,count*2,true);
 
-  const base={cinematic:55,documentary:82,dramatic:48,calm:110,cute:132}[style]||55;
+function createOriginalWav(seconds,style='cinematic',variant=0){
+  const sampleRate=44100;
+  const channels=2;
+  const count=Math.max(1,Math.floor(seconds*sampleRate));
+  const buf=new ArrayBuffer(44+count*channels*2);
+  const view=new DataView(buf);
+  writeAscii(view,0,'RIFF'); view.setUint32(4,36+count*channels*2,true);
+  writeAscii(view,8,'WAVE'); writeAscii(view,12,'fmt ');
+  view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,channels,true);
+  view.setUint32(24,sampleRate,true); view.setUint32(28,sampleRate*channels*2,true);
+  view.setUint16(32,channels*2,true); view.setUint16(34,16,true);
+  writeAscii(view,36,'data'); view.setUint32(40,count*channels*2,true);
+
+  const base=({cinematic:62,documentary:84,dramatic:52,calm:112,cute:136}[style]||62)+(Number(variant)||0)*1.25;
   for(let i=0;i<count;i++){
     const t=i/sampleRate;
-    const fade=Math.min(1,t/1.5,(seconds-t)/1.5);
-    const wobble=1+0.03*Math.sin(2*Math.PI*0.09*t);
-    let s=
-      Math.sin(2*Math.PI*base*wobble*t)*0.18+
-      Math.sin(2*Math.PI*(base*1.5)*t)*0.08+
-      Math.sin(2*Math.PI*(base*2.02)*t)*0.04;
-    if(style==='dramatic') s+=Math.sin(2*Math.PI*0.7*t)*0.06;
-    if(style==='cute') s+=Math.sin(2*Math.PI*(base*3)*t)*0.035;
-    s*=Math.max(0,fade)*0.55;
-    view.setInt16(44+i*2,Math.max(-1,Math.min(1,s))*32767,true);
+    const fade=Math.min(1,t/1.2,(seconds-t)/1.4);
+    const wobble=1+0.025*Math.sin(2*Math.PI*0.08*t);
+    let s =
+      Math.sin(2*Math.PI*base*wobble*t)*0.30+
+      Math.sin(2*Math.PI*(base*1.5)*t)*0.12+
+      Math.sin(2*Math.PI*(base*2.03)*t)*0.06;
+    if(style==='dramatic') s += Math.sin(2*Math.PI*0.7*t)*0.08;
+    if(style==='cute') s += Math.sin(2*Math.PI*(base*3)*t)*0.05;
+    s*=Math.max(0,fade)*0.8;
+    const left=Math.max(-1,Math.min(1,s*(0.98+0.02*Math.sin(2*Math.PI*0.13*t))))*32767;
+    const right=Math.max(-1,Math.min(1,s*(0.98+0.02*Math.cos(2*Math.PI*0.11*t))))*32767;
+    const off=44+i*4;
+    view.setInt16(off,left,true);
+    view.setInt16(off+2,right,true);
   }
   return new Blob([buf],{type:'audio/wav'});
 }
 
-async function createDirectorMontage(files,totalSeconds,style,addTitle=true,addSound=true){
+async function createDirectorMontage(files,totalSeconds,style,addTitle=true,addSound=true,batchIndex=0,batchTotal=1,fastMode=true){
   const ff=await ensureFFmpeg();
   const usable=Array.from(files||[]).filter(Boolean);
   if(!usable.length) throw new Error('No usable source clips were downloaded.');
   const per=Math.max(3,totalSeconds/usable.length);
   const segments=[];
+  const fps=fastMode?24:30;
+  const crf=fastMode?'26':'22';
+  const renderFilter = (style) => `[0:v]split=2[bgsrc][fgsrc];[bgsrc]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=18:2,${styleFilter(style)}[bg];[fgsrc]scale=1080:1920:force_original_aspect_ratio=decrease,${styleFilter(style)}[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,fps=${fps},format=yuv420p[v]`;
   setProgress(38,`AI Director is styling ${usable.length} clips…`);
 
   for(let i=0;i<usable.length;i++){
@@ -326,14 +355,14 @@ async function createDirectorMontage(files,totalSeconds,style,addTitle=true,addS
     try{await ff.deleteFile(outName)}catch{}
     await ff.writeFile(inName,await fetchFile(file));
 
-    const scale = i%2===0 ? 'scale=760:1352' : 'scale=790:1404';
-    const filter=`${scale}:force_original_aspect_ratio=increase,crop=720:1280,${styleFilter(style)},fps=30`;
     try{
       await ff.exec([
         '-i',inName,'-t',per.toFixed(2),
-        '-vf',filter,'-an',
-        '-c:v','libx264','-preset','ultrafast','-crf','21',
-        '-pix_fmt','yuv420p',outName
+        '-filter_complex',renderFilter(style),
+        '-map','[v]','-an',
+        '-c:v','libx264','-preset','ultrafast','-crf',crf,
+        ...(fastMode?['-maxrate','2800k','-bufsize','5600k']:['-maxrate','5000k','-bufsize','10000k']),
+        '-pix_fmt','yuv420p','-movflags','+faststart',outName
       ]);
       segments.push(outName);
     }catch(err){ console.warn('Skipping source clip',err); }
@@ -347,13 +376,14 @@ async function createDirectorMontage(files,totalSeconds,style,addTitle=true,addS
   await ff.exec(['-f','concat','-safe','0','-i',list,'-c','copy','-movflags','+faststart',silent]);
 
   if(addTitle){
-    const png=await makeTitlePng(directorHook());
+    const png=await makeTitlePng(directorHook(batchIndex,batchTotal));
     await ff.writeFile('title.png',await fetchFile(png));
     await ff.exec([
       '-i',silent,'-loop','1','-i','title.png',
-      '-filter_complex',"[0:v][1:v]overlay=0:0:enable='between(t,0,4.2)'",
+      '-filter_complex',"[0:v][1:v]overlay=0:0:enable='between(t,0,3.2)'",
       '-t',String(totalSeconds),
-      '-c:v','libx264','-preset','ultrafast','-crf','20',
+      '-c:v','libx264','-preset','ultrafast','-crf',crf,
+      ...(fastMode?['-maxrate','2800k','-bufsize','5600k']:['-maxrate','5000k','-bufsize','10000k']),
       '-pix_fmt','yuv420p','-an','-movflags','+faststart',visual
     ]);
   }else{
@@ -361,12 +391,12 @@ async function createDirectorMontage(files,totalSeconds,style,addTitle=true,addS
   }
 
   if(addSound){
-    const wav=createOriginalWav(totalSeconds,style);
+    const wav=createOriginalWav(totalSeconds,style,batchIndex);
     await ff.writeFile('director.wav',await fetchFile(wav));
     await ff.exec([
       '-i',visual,'-i','director.wav','-t',String(totalSeconds),
       '-map','0:v:0','-map','1:a:0',
-      '-c:v','copy','-c:a','aac','-b:a','128k',
+      '-c:v','copy','-c:a','aac','-b:a',fastMode?'128k':'160k','-ar','44100','-ac','2','-af','volume=4.2,alimiter=limit=0.97',
       '-movflags','+faststart','-shortest',final
     ]);
   }else{
@@ -411,7 +441,8 @@ function extFrom(file) {
   const m=(file?.name||'').match(/\.([a-z0-9]+)$/i);
   return m?m[1].toLowerCase():'mp4';
 }
-async function createVerticalReel(file) {
+
+async function createVerticalReel(file,batchIndex=0,batchTotal=1,fastMode=true) {
   const ff=await ensureFFmpeg();
   const inName=`input.${extFrom(file)}`;
   try{await ff.deleteFile(inName)}catch{}
@@ -420,7 +451,7 @@ async function createVerticalReel(file) {
   const duration=String(Math.max(10,Math.min(60,Number(els.clipLength.value)||30)));
   const meta=await readVideoMeta(file);
   const ratio=meta.width && meta.height ? meta.width/meta.height : 0;
-  const fastCopy=(extFrom(file)==='mp4' || extFrom(file)==='m4v') && Math.abs(ratio-(9/16))<0.025;
+  const fastCopy=batchTotal===1 && (extFrom(file)==='mp4' || extFrom(file)==='m4v') && meta.width===1080 && meta.height===1920 && Math.abs(ratio-(9/16))<0.025;
 
   if(fastCopy){
     setProgress(42,'Fast path: preserving your original vertical video quality…');
@@ -431,18 +462,69 @@ async function createVerticalReel(file) {
     }catch(err){ console.warn('Fast path unavailable, using normal encode.',err); }
   }
 
-  setProgress(42,'Creating a full-screen 9:16 Facebook Reel…');
+  setProgress(42,'Creating a Facebook-ready 9:16 Reel with boosted sound…');
+  const fps=fastMode?24:30;
+  const crf=fastMode?'26':'22';
+  const totalWanted=Number(duration)||30;
+  const maxStart=Math.max(0,(meta.duration||0)-totalWanted);
+  const start=batchTotal>1 && maxStart>0 ? Math.min(maxStart,(maxStart*Math.max(0,batchIndex))/(Math.max(1,batchTotal-1))) : 0;
+  const seek=start>0?['-ss',start.toFixed(2)]:[];
   await ff.exec([
-    '-i',inName,'-t',duration,
-    '-map','0:v:0','-map','0:a?',
-    '-vf','scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30',
-    '-c:v','libx264','-preset','ultrafast','-crf','21',
-    '-c:a','aac','-b:a','160k',
+    ...seek,'-i',inName,'-t',duration,
+    '-filter_complex',`[0:v]split=2[bgsrc][fgsrc];[bgsrc]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=18:2[bg];[fgsrc]scale=1080:1920:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,fps=${fps},format=yuv420p[v]`,
+    '-map','[v]','-map','0:a?',
+    '-c:v','libx264','-preset','ultrafast','-crf',crf,
+    ...(fastMode?['-maxrate','2800k','-bufsize','5600k']:['-maxrate','5000k','-bufsize','10000k']),
+    '-c:a','aac','-b:a',fastMode?'128k':'160k','-ar','44100','-ac','2','-af','volume=1.8,alimiter=limit=0.97',
     '-pix_fmt','yuv420p','-movflags','+faststart',
     'facebook-reel.mp4'
   ]);
   const out=await ff.readFile('facebook-reel.mp4');
   return new Blob([out.buffer],{type:'video/mp4'});
+}
+
+
+async function blobHash(blob){
+  const buf=await blob.arrayBuffer();
+  const digest=await crypto.subtle.digest('SHA-256',buf);
+  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function ledgerKey(){
+  return `fbclip.uploadLedger.${selectedPage?.id||'unknown'}`;
+}
+function readLedger(){
+  let ledger={};
+  try{ledger=JSON.parse(localStorage.getItem(ledgerKey())||'{}')||{}}catch{}
+  const now=Date.now();
+  for(const [k,v] of Object.entries(ledger)){
+    const age=now-Number(v?.time||0);
+    if((v?.status==='done' && age>30*24*60*60*1000) || (v?.status!=='done' && age>30*60*1000)) delete ledger[k];
+  }
+  localStorage.setItem(ledgerKey(),JSON.stringify(ledger));
+  return ledger;
+}
+function writeLedger(ledger){
+  localStorage.setItem(ledgerKey(),JSON.stringify(ledger));
+}
+async function claimUpload(blob){
+  const hash=await blobHash(blob);
+  const ledger=readLedger();
+  const old=ledger[hash];
+  if(old?.status==='done') throw new Error('Duplicate upload blocked — this exact Reel was already published from this device.');
+  if(old && Date.now()-Number(old.time||0)<30*60*1000) throw new Error('Duplicate upload blocked — this Reel is already uploading or was just attempted.');
+  ledger[hash]={status:'pending',time:Date.now()};
+  writeLedger(ledger);
+  return hash;
+}
+function markUpload(hash,status,videoId=''){
+  const ledger=readLedger();
+  ledger[hash]={status,time:Date.now(),videoId};
+  writeLedger(ledger);
+}
+function releaseUpload(hash){
+  const ledger=readLedger();
+  delete ledger[hash];
+  writeLedger(ledger);
 }
 
 function workerBase() {
@@ -461,106 +543,139 @@ async function workerJson(path,body) {
   if(!r.ok || data?.error) throw new Error(data?.error?.message || data?.error || data?.raw || `HTTP ${r.status}`);
   return data;
 }
-async function publishReel(blob) {
+async function publishReel(blob,batchIndex=0,batchTotal=1) {
   if(!selectedPage) throw new Error('Choose a Facebook Page first.');
   const pageToken=selectedPage.access_token;
-  setProgress(78,`Starting upload to ${selectedPage.name}…`);
-  const init=await workerJson('/reels/start',{
-    pageId:selectedPage.id,
-    pageToken,
-    graphVersion:els.graphVersion.value.trim()||'v24.0'
-  });
-  if(!init.video_id || !init.upload_url) throw new Error('Facebook did not return a Reel upload session.');
+  const label=batchTotal>1?` (${batchIndex+1}/${batchTotal})`:'';
+  const hash=await claimUpload(blob);
+  let stage='claimed';
+  let init=null;
+  try{
+    setProgress(78,`Starting upload${label} to ${selectedPage.name}…`);
+    init=await workerJson('/reels/start',{
+      pageId:selectedPage.id,
+      pageToken,
+      graphVersion:els.graphVersion.value.trim()||'v24.0'
+    });
+    if(!init.video_id || !init.upload_url) throw new Error('Facebook did not return a Reel upload session.');
+    stage='started';
 
-  setProgress(84,'Uploading Reel video to Facebook…');
-  const upload=await fetch(`${workerBase()}/reels/upload`,{
-    method:'POST',
-    headers:{
-      'x-upload-url':init.upload_url,
-      'x-page-token':pageToken,
-      'content-type':'video/mp4'
-    },
-    body:blob
-  });
-  const uploadText=await upload.text();
-  if(!upload.ok) {
-    let msg=uploadText;
-    try{msg=JSON.parse(uploadText)?.error?.message || JSON.parse(uploadText)?.error || uploadText}catch{}
-    throw new Error(String(msg));
+    setProgress(84,`Uploading Reel${label} to Facebook…`);
+    const upload=await fetch(`${workerBase()}/reels/upload`,{
+      method:'POST',
+      headers:{
+        'x-upload-url':init.upload_url,
+        'x-page-token':pageToken,
+        'content-type':'video/mp4'
+      },
+      body:blob
+    });
+    const uploadText=await upload.text();
+    if(!upload.ok) {
+      let msg=uploadText;
+      try{msg=JSON.parse(uploadText)?.error?.message || JSON.parse(uploadText)?.error || uploadText}catch{}
+      throw new Error(String(msg));
+    }
+    stage='uploaded';
+
+    setProgress(93,`Publishing Reel${label} on your Facebook Page…`);
+    const description=`${els.caption.value.trim()}\n\n${els.hashtags.value.trim()}`.trim();
+    stage='finishing';
+    const result=await workerJson('/reels/finish',{
+      pageId:selectedPage.id,
+      pageToken,
+      videoId:init.video_id,
+      description,
+      graphVersion:els.graphVersion.value.trim()||'v24.0'
+    });
+    markUpload(hash,'done',init.video_id);
+    return result;
+  }catch(err){
+    if(stage==='claimed' || stage==='started' || stage==='uploaded') releaseUpload(hash);
+    else markUpload(hash,'uncertain',init?.video_id||'');
+    throw err;
   }
-
-  setProgress(93,'Publishing Reel on your Facebook Page…');
-  const description=`${els.caption.value.trim()}\n\n${els.hashtags.value.trim()}`.trim();
-  return await workerJson('/reels/finish',{
-    pageId:selectedPage.id,
-    pageToken,
-    videoId:init.video_id,
-    description,
-    graphVersion:els.graphVersion.value.trim()||'v24.0'
-  });
 }
 
 els.fullAutoButton.addEventListener('click',async()=>{
+  if(batchRunning) return setProgress(0,'A batch is already running. Duplicate start blocked.');
   if(!selectedPage) return setProgress(0,'Connect Facebook and choose a Page first.');
   if(!els.rightsConfirm.checked) return setProgress(0,'Tick the rights/source confirmation first.');
-  let file=null;
+  const batchTotal=Math.max(1,Math.min(10,Number(els.uploadCount?.value)||1));
+  const fastMode=Boolean(els.fastUploadMode?.checked);
+  const usedSourceUrls=new Set();
+  let completed=0;
+  batchRunning=true;
   sourceMeta=null;
   els.fullAutoButton.disabled=true;
   els.resultCard.classList.add('hidden');
 
   try{
-    if(sourceMode==='auto'){
-      const t=els.topic.value.trim();
-      if(!t) throw new Error('Enter a topic first.');
-      const wanted=Math.max(2,Math.min(4,Number(els.montageCount.value)||3));
-      setProgress(7,`AI Director is finding ${wanted} Public Domain/CC0 clips…`);
-      const sources=await findPublicDomainVideos(t,wanted);
+    if(sourceMode==='own' && !ownFile) throw new Error('Choose your own video first.');
+    if(sourceMode==='auto' && !els.topic.value.trim()) throw new Error('Enter a topic first.');
 
-      const credit=sources.map((s,i)=>`${i+1}. ${s.license} • Wikimedia Commons • ${s.pageUrl}`).join('\n');
-      sourceMeta={kind:'director',title:t,credit,sources};
-      els.sourceInfo.innerHTML=`Found <strong>${sources.length}</strong> reusable clip${sources.length===1?'':'s'}. Building a fresh montage.`;
+    for(let batchIndex=0;batchIndex<batchTotal;batchIndex++){
+      const batchLabel=batchTotal>1?`Reel ${batchIndex+1} of ${batchTotal}`:'Reel';
+      setProgress(3,`${batchLabel}: preparing…`);
 
-      const files=[];
-      for(let i=0;i<sources.length;i++){
-        setProgress(16+(i/sources.length)*15,`Downloading source ${i+1} of ${sources.length}…`);
-        try{files.push(await downloadSource(sources[i],i))}catch(err){console.warn(err)}
+      if(sourceMode==='auto'){
+        const t=els.topic.value.trim();
+        const wanted=Math.max(2,Math.min(4,Number(els.montageCount.value)||3));
+        setProgress(7,`${batchLabel}: finding Public Domain/CC0 clips…`);
+        let sources=[];
+        try{
+          sources=await findPublicDomainVideos(t,wanted,usedSourceUrls,batchIndex*8);
+        }catch(err){
+          sources=await findPublicDomainVideos(t,wanted,new Set(),batchIndex*4);
+        }
+        sources.forEach(s=>usedSourceUrls.add(s.url));
+
+        const credit=sources.map((s,i)=>`${i+1}. ${s.license} • Wikimedia Commons • ${s.pageUrl}`).join('\n');
+        sourceMeta={kind:'director',title:t,credit,sources};
+        els.sourceInfo.innerHTML=`${batchLabel}: found <strong>${sources.length}</strong> reusable clips. Building a fresh montage.`;
+
+        const files=[];
+        for(let i=0;i<sources.length;i++){
+          setProgress(16+(i/sources.length)*15,`${batchLabel}: downloading source ${i+1} of ${sources.length}…`);
+          try{files.push(await downloadSource(sources[i],i))}catch(err){console.warn(err)}
+        }
+        if(!files.length) throw new Error(`${batchLabel}: no source clips could be downloaded.`);
+
+        generateCopy(batchIndex,batchTotal);
+        const total=Math.max(12,Math.min(45,Number(els.clipLength.value)||24));
+        reelBlob=await createDirectorMontage(
+          files,total,els.directorStyle?.value||'cinematic',
+          Boolean(els.burnCaption?.checked),Boolean(els.originalSoundtrack?.checked),
+          batchIndex,batchTotal,fastMode
+        );
+      }else{
+        sourceMeta={kind:'own',title:ownFile.name,credit:''};
+        generateCopy(batchIndex,batchTotal);
+        reelBlob=await createVerticalReel(ownFile,batchIndex,batchTotal,fastMode);
       }
-      if(!files.length) throw new Error('No source clips could be downloaded.');
 
-      generateCopy();
-      const total=Math.max(12,Math.min(45,Number(els.clipLength.value)||24));
-      reelBlob=await createDirectorMontage(
-        files,
-        total,
-        els.directorStyle?.value||'cinematic',
-        Boolean(els.burnCaption?.checked),
-        Boolean(els.originalSoundtrack?.checked)
-      );
-    }else{
-      if(!ownFile) throw new Error('Choose your own video first.');
-      file=ownFile;
-      sourceMeta={kind:'own',title:ownFile.name,credit:''};
-      generateCopy();
-      reelBlob=await createVerticalReel(file);
+      if(reelUrl) URL.revokeObjectURL(reelUrl);
+      reelUrl=URL.createObjectURL(reelBlob);
+      els.downloadLink.href=reelUrl;
+
+      await publishReel(reelBlob,batchIndex,batchTotal);
+      completed++;
+      setProgress(Math.min(99,Math.round((completed/batchTotal)*100)),`${batchLabel}: published successfully.`);
     }
-    if(reelUrl) URL.revokeObjectURL(reelUrl);
-    reelUrl=URL.createObjectURL(reelBlob);
-    els.downloadLink.href=reelUrl;
 
-    await publishReel(reelBlob);
-
-    setProgress(100,`Done — Reel published to ${selectedPage.name}.`);
-    els.resultText.textContent=`Published to ${selectedPage.name}. A local download copy is also ready.`;
+    setProgress(100,`Done — ${completed} Reel${completed===1?'':'s'} published to ${selectedPage.name}. Duplicate protection stayed on.`);
+    els.resultText.textContent=`Published ${completed} of ${batchTotal} Reel${batchTotal===1?'':'s'} to ${selectedPage.name}. The last local download copy is ready.`;
     els.resultCard.classList.remove('hidden');
   }catch(err){
     console.error(err);
-    setProgress(0,`Stopped: ${err.message}`);
+    setProgress(0,`Stopped after ${completed} successful upload${completed===1?'':'s'}: ${err.message}`);
   }finally{
+    batchRunning=false;
     els.fullAutoButton.disabled=false;
   }
 });
 
-['topic','directorStyle'].forEach(id=>{
+['topic' ,'directorStyle'].forEach(id=>{
   const el=document.getElementById(id);
   el?.addEventListener('change',()=>{if((els.topic.value||'').trim()) generateCopy();});
 });
