@@ -1,6 +1,6 @@
-const CACHE='facebook-clip-ai-preview-first-v8';
+const CACHE='facebook-clip-ai-preview-first-v9';
 const FILES=[
-  './index.html?v=8','./app.js?v=8','./styles.css?v=8','./privacy.html','./terms.html','./data-deletion.html'
+  './index.html?v=9','./app.js?v=9','./styles.css?v=9','./privacy.html','./terms.html','./data-deletion.html'
 ];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

@@ -32,15 +32,127 @@ function formatBytes(n=0){
   if(n<1024*1024) return `${(n/1024).toFixed(0)} KB`;
   return `${(n/1024/1024).toFixed(1)} MB`;
 }
+const SEO_STOPWORDS=new Set(['the','and','for','with','from','this','that','your','into','over','under','about','video','reel','reels','facebook','short','watch','latest','fresh']);
+
+function hashTag(text=''){
+  const clean=String(text).replace(/&/g,' and ').replace(/[^a-zA-Z0-9]+/g,' ').trim();
+  if(!clean) return '';
+  const parts=clean.split(/\s+/).filter(Boolean);
+  return '#'+parts.map(p=>p.charAt(0).toUpperCase()+p.slice(1).toLowerCase()).join('');
+}
+
+function seoProfile(raw=''){
+  const lower=String(raw).toLowerCase();
+  const source=String(selectedSource?.tags||selectedSource?.title||'').toLowerCase();
+  const combined=`${lower} ${source}`;
+
+  if(/\b(world war (?:1|i)|ww1|first world war)\b/.test(combined)){
+    return {
+      title:'World War I History',
+      intro:'Explore World War I history through a short visual Reel covering the people, places and military history connected to the conflict.',
+      cta:'Which part of World War I history should we cover next?',
+      tags:['#WorldWarI','#WWIHistory','#MilitaryHistory','#WarHistory','#HistoryReels','#HistoricalFootage']
+    };
+  }
+  if(/\b(world war (?:2|ii)|ww2|second world war)\b/.test(combined)){
+    return {
+      title:'World War II History',
+      intro:'Explore World War II history through a short visual Reel covering the people, places and military history connected to the conflict.',
+      cta:'Which part of World War II history should we cover next?',
+      tags:['#WorldWarII','#WWIIHistory','#MilitaryHistory','#WarHistory','#HistoryReels','#HistoricalFootage']
+    };
+  }
+  if((/\bunited states\b/.test(combined)||/\bu\.?s\.?\b/.test(combined)||/\bamerican\b/.test(combined)) && /\b(war|military|battle|army|navy|air force|marines)\b/.test(combined)){
+    return {
+      title:'United States War History',
+      intro:'Explore United States war and military history in this short visual Reel, with a focus on the events, places and stories connected to America’s military past.',
+      cta:'Which part of U.S. military history should we cover next?',
+      tags:['#UnitedStatesHistory','#AmericanHistory','#MilitaryHistory','#WarHistory','#USMilitary','#HistoryReels','#HistoricalFootage']
+    };
+  }
+  if(/\b(war|military|battle|army|navy|air force|marines)\b/.test(combined)){
+    return {
+      title:titleCase(raw||'Military History'),
+      intro:`Explore ${titleCase(raw||'military history')} in this short visual Reel focused on the people, places and stories behind the topic.`,
+      cta:'Which part of this history should we cover next?',
+      tags:['#MilitaryHistory','#WarHistory','#HistoryReels','#HistoricalFootage','#History']
+    };
+  }
+  if(/\b(lion|tiger|elephant|leopard|cheetah|wildlife|animal|animals)\b/.test(combined)){
+    return {
+      title:titleCase(raw||'Wildlife'),
+      intro:`Watch ${titleCase(raw||'wildlife')} up close in this fresh vertical Reel featuring a striking wildlife moment.`,
+      cta:'What animal should we feature next?',
+      tags:['#Wildlife','#WildlifeVideo','#Animals','#Nature','#AnimalReels','#NatureReels']
+    };
+  }
+  if(/\b(puppy|puppies|dog|dogs|kitten|kittens|cat|cats|pet|pets)\b/.test(combined)){
+    return {
+      title:titleCase(raw||'Cute Pets'),
+      intro:`Enjoy this fresh ${titleCase(raw||'pet')} Reel featuring a fun, adorable moment worth watching to the end.`,
+      cta:'Which pet should we feature next?',
+      tags:['#CuteAnimals','#Pets','#PetVideos','#DogsAndCats','#AnimalReels','#FeelGood']
+    };
+  }
+  if(/\b(nature|mountain|ocean|beach|forest|waterfall|landscape|new zealand|travel)\b/.test(combined)){
+    return {
+      title:titleCase(raw||'Nature'),
+      intro:`Take a quick look at ${titleCase(raw||'nature')} in this fresh vertical Reel featuring scenery and outdoor moments.`,
+      cta:'Where should we feature next?',
+      tags:['#Nature','#NatureReels','#TravelVideo','#Scenery','#ExploreMore','#BeautifulPlaces']
+    };
+  }
+  if(/\b(car|cars|supercar|truck|motorcycle|bike|vehicle)\b/.test(combined)){
+    return {
+      title:titleCase(raw||'Cars'),
+      intro:`Check out ${titleCase(raw||'cars')} in this fresh vertical Reel made for automotive fans.`,
+      cta:'What vehicle should we feature next?',
+      tags:['#Cars','#CarVideos','#Automotive','#CarReels','#Motorsport','#Vehicles']
+    };
+  }
+  if(/\b(football|soccer|rugby|basketball|tennis|cricket|sport|sports)\b/.test(combined)){
+    return {
+      title:titleCase(raw||'Sports'),
+      intro:`Watch this ${titleCase(raw||'sports')} Reel featuring a fresh sports moment.`,
+      cta:'What sport should we feature next?',
+      tags:['#Sports','#SportsReels','#SportsVideo','#GameDay','#Athletes']
+    };
+  }
+
+  const cleanTitle=titleCase(raw||'Amazing Moment').slice(0,90);
+  return {
+    title:cleanTitle,
+    intro:`Discover ${cleanTitle} in this fresh vertical Reel. Watch the full clip and tell us what stood out to you.`,
+    cta:'What should we feature next?',
+    tags:['#FacebookReels','#Reels','#ShortVideo','#TrendingTopics']
+  };
+}
+
 function generateCopy(){
   const raw=els.topic.value.trim()||selectedSource?.tags||selectedSource?.title||ownFile?.name?.replace(/\.[^.]+$/,'')||'Amazing moment';
-  const t=titleCase(raw).slice(0,88);
-  const hooks=['Wait for this 👀','Watch this all the way through 👀','This caught my attention instantly 🔥','Would you have expected this? 👀'];
-  const hook=hooks[Math.floor(Math.random()*hooks.length)];
-  els.caption.value=`${hook}\n\n${t}\n\nWhat do you think?`;
-  const words=safeWords(raw).filter(w=>w.length>3).slice(0,4);
-  els.hashtags.value=[...new Set(['#FacebookReels','#Reels',...words.map(w=>`#${w}`)])].join(' ');
+  const profile=seoProfile(raw);
+  const sourceWords=safeWords(selectedSource?.tags||raw).filter(w=>w.length>3&&!SEO_STOPWORDS.has(w));
+  const dynamic=[];
+
+  dynamic.push(hashTag(profile.title));
+  if(raw && raw.toLowerCase()!==profile.title.toLowerCase()) dynamic.push(hashTag(raw));
+
+  for(const w of sourceWords){
+    if(dynamic.length>=4) break;
+    dynamic.push(hashTag(w));
+  }
+
+  const tags=[...new Set([
+    '#FacebookReels',
+    '#Reels',
+    ...profile.tags,
+    ...dynamic
+  ].filter(Boolean))].slice(0,9);
+
+  els.caption.value=`${profile.title} 🎥\n\n${profile.intro}\n\n${profile.cta}`;
+  els.hashtags.value=tags.join(' ');
 }
+
 els.regenerateCopy.addEventListener('click',generateCopy);
 
 function saveSetup(){
