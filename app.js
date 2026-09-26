@@ -10,6 +10,9 @@ const els = Object.fromEntries([
   'caption','hashtags','regenerateCopy'
 ].map(id => [id,$(id)]));
 
+const META_APP_ID = '39365842192999950';
+const META_LOGIN_CONFIG_ID = '4635831679973280';
+
 let ffmpeg = null;
 let facebookUserToken = '';
 let pages = [];
@@ -57,7 +60,7 @@ function saveSetup() {
 els.saveSetup.addEventListener('click', saveSetup);
 
 function restoreSetup() {
-  els.metaAppId.value = localStorage.getItem('fbclip.appId') || '';
+  els.metaAppId.value = localStorage.getItem('fbclip.appId') || META_APP_ID;
   els.graphVersion.value = localStorage.getItem('fbclip.graphVersion') || 'v24.0';
   els.workerUrl.value = localStorage.getItem('fbclip.workerUrl') || '';
 }
@@ -93,7 +96,7 @@ function fbLogin() {
     FB.login(res=>{
       if (!res?.authResponse?.accessToken) return reject(new Error('Facebook connection was cancelled or not approved.'));
       resolve(res.authResponse.accessToken);
-    }, {scope:'pages_show_list,pages_read_engagement,pages_manage_posts', return_scopes:true});
+    }, {config_id:META_LOGIN_CONFIG_ID});
   });
 }
 function fbApi(path) {
@@ -226,7 +229,6 @@ async function downloadSource(src,index=0) {
   const ext = src.mime?.includes('webm') ? 'webm' : src.mime?.includes('ogg') ? 'ogv' : 'mp4';
   return new File([blob],`source-${index}.${ext}`,{type:src.mime||blob.type||'video/mp4'});
 }
-
 
 function directorHook(){
   const raw=(els.topic.value||'Amazing Moment').trim();

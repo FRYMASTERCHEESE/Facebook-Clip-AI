@@ -1,4 +1,4 @@
-const CACHE='facebook-clip-ai-free-director-v1';
+const CACHE='facebook-clip-ai-free-director-v2';
 const FILES=['./','./index.html','./styles.css','./app.js','./privacy.html','./terms.html','./data-deletion.html'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));
