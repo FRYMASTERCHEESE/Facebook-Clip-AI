@@ -259,7 +259,7 @@ async function makeTitlePng(text){
   ctx.font='900 48px Arial, sans-serif';
   ctx.textAlign='center';
   ctx.textBaseline='middle';
-  const words=String(text||'').split(/\\s+/).filter(Boolean);
+  const words=String(text||'').split(/\s+/).filter(Boolean);
   const lines=[]; let line='';
   for(const word of words){
     const test=line?`${line} ${word}`:word;
@@ -343,7 +343,7 @@ async function createDirectorMontage(files,totalSeconds,style,addTitle=true,addS
 
   const list='director-list.txt', silent='director-silent.mp4', visual='director-visual.mp4', final='facebook-reel.mp4';
   for(const name of [list,silent,visual,final,'title.png','director.wav']){try{await ff.deleteFile(name)}catch{}}
-  await ff.writeFile(list,new TextEncoder().encode(segments.map(x=>`file '${x}'`).join('\\n')));
+  await ff.writeFile(list,new TextEncoder().encode(segments.map(x=>`file '${x}'`).join('\n')));
   await ff.exec(['-f','concat','-safe','0','-i',list,'-c','copy','-movflags','+faststart',silent]);
 
   if(addTitle){
@@ -399,7 +399,9 @@ async function ensureFFmpeg() {
     if(Number.isFinite(progress)) els.progressBar.style.width=`${Math.max(30,Math.round(progress*75))}%`;
   });
   const base='https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+  const classWorkerURL = new URL('./ffmpeg-worker.js', import.meta.url).href;
   await ffmpeg.load({
+    classWorkerURL,
     coreURL:await toBlobURL(`${base}/ffmpeg-core.js`,'text/javascript'),
     wasmURL:await toBlobURL(`${base}/ffmpeg-core.wasm`,'application/wasm')
   });
